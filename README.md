@@ -359,5 +359,5 @@ done
 Run tests:
 
 ```bash
-bats tests
+bats tests/unit/*.bats tests/integration/*.bats
 ```
