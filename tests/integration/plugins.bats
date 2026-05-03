@@ -143,6 +143,25 @@ JSON
   [ -z "$(git status --short)" ]
 }
 
+@test "release-notes keeps commit links on one line for multiple commits" {
+  make_repo
+  commit_file "chore: initial"
+  git tag v1.0.0
+  commit_file "docs: update docs"
+  docs_hash="$(git rev-parse HEAD)"
+  docs_short="${docs_hash:0:7}"
+  commit_file "feat: add feature"
+  feature_hash="$(git rev-parse HEAD)"
+  feature_short="${feature_hash:0:7}"
+
+  run "$ZERO_RELEASE_BIN" --dry-run --plugins release-notes --branches main
+  assert_success
+  assert_output_contains "add feature ([${feature_short}](https://github.com/user/repo/commit/${feature_hash}))"
+  assert_output_contains "docs: update docs ([${docs_short}](https://github.com/user/repo/commit/${docs_hash}))"
+  [[ "$output" != *"(["$'\n'* ]]
+  [[ "$output" != *"/commit/"$'\n'* ]]
+}
+
 @test "slack is skipped in dry-run and does not call curl" {
   make_repo
   commit_file "chore: initial"

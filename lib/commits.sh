@@ -50,6 +50,14 @@ zr_commit_description() {
   printf '%s\n' "$description"
 }
 
+zr_commit_hash_from_record() {
+  local hash="$1"
+
+  hash="${hash//$'\n'/}"
+  hash="${hash//$'\r'/}"
+  printf '%s\n' "$hash"
+}
+
 zr_breaking_description() {
   local subject="$1"
   local body="$2"
@@ -114,6 +122,7 @@ zr_analyze_commits() {
   fi
 
   while IFS=$'\037' read -r -d $'\036' hash subject body; do
+    hash="$(zr_commit_hash_from_record "$hash")"
     [ -n "$hash" ] || continue
     ZR_COMMIT_TOTAL=$((ZR_COMMIT_TOTAL + 1))
 
@@ -168,6 +177,7 @@ zr_generate_release_notes_file() {
   fi
 
   while IFS=$'\037' read -r -d $'\036' hash subject body; do
+    hash="$(zr_commit_hash_from_record "$hash")"
     [ -n "$hash" ] || continue
     short_hash="${hash:0:7}"
     if [ -n "$repository_url" ]; then
