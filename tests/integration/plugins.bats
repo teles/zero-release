@@ -162,6 +162,45 @@ JSON
   [[ "$output" != *"/commit/"$'\n'* ]]
 }
 
+@test "github-release creates a GitHub release with generated markdown notes" {
+  make_repo
+  make_bare_origin
+  commit_file "chore: initial"
+  git push origin main >/dev/null
+  git tag v1.0.0
+  git push origin v1.0.0 >/dev/null
+  commit_file "fix: bug"
+  fake_bin="$BATS_TEST_TMPDIR/fake-bin-github-release"
+  mkdir -p "$fake_bin"
+  printf '#!/usr/bin/env bash\nset -euo pipefail\npayload_file="%s/github-release-payload.json"\nargs_file="%s/github-release-curl-args"\nresponse_file=""\nwhile [ "$#" -gt 0 ]; do\n  case "$1" in\n    --data)\n      printf "%%s" "$2" > "$payload_file"\n      shift 2\n      ;;\n    -o)\n      response_file="$2"\n      shift 2\n      ;;\n    *)\n      printf "%%s\\n" "$1" >> "$args_file"\n      shift\n      ;;\n  esac\ndone\nif [ -n "$response_file" ]; then\n  printf "{\\"html_url\\":\\"https://github.com/user/repo/releases/tag/v1.0.1\\"}" > "$response_file"\nfi\nprintf "201"\n' "$BATS_TEST_TMPDIR" "$BATS_TEST_TMPDIR" > "$fake_bin/curl"
+  chmod +x "$fake_bin/curl"
+
+  PATH="$fake_bin:$PATH" GITHUB_REPOSITORY="user/repo" GITHUB_TOKEN="token" run "$ZERO_RELEASE_BIN" --plugins release-notes,github-release --branches main
+  assert_success
+  assert_output_contains "github-release: created release v1.0.1"
+  git --git-dir="$BARE_ORIGIN" rev-parse -q --verify refs/tags/v1.0.1 >/dev/null
+  grep 'https://api.github.com/repos/user/repo/releases' "$BATS_TEST_TMPDIR/github-release-curl-args" >/dev/null
+  grep '"tag_name":"v1.0.1"' "$BATS_TEST_TMPDIR/github-release-payload.json" >/dev/null
+  grep '"name":"v1.0.1"' "$BATS_TEST_TMPDIR/github-release-payload.json" >/dev/null
+  grep '### Bug Fixes' "$BATS_TEST_TMPDIR/github-release-payload.json" >/dev/null
+  grep 'bug' "$BATS_TEST_TMPDIR/github-release-payload.json" >/dev/null
+}
+
+@test "github-release fails clearly for real releases without a token" {
+  make_repo
+  make_bare_origin
+  commit_file "chore: initial"
+  git push origin main >/dev/null
+  git tag v1.0.0
+  git push origin v1.0.0 >/dev/null
+  commit_file "fix: bug"
+
+  GITHUB_REPOSITORY="user/repo" run "$ZERO_RELEASE_BIN" --plugins release-notes,github-release --branches main
+  assert_failure
+  assert_output_contains "GITHUB_TOKEN or ZERO_RELEASE_GITHUB_TOKEN is required"
+  ! git rev-parse -q --verify refs/tags/v1.0.1 >/dev/null
+}
+
 @test "slack is skipped in dry-run and does not call curl" {
   make_repo
   commit_file "chore: initial"

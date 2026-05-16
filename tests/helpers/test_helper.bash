@@ -7,6 +7,12 @@ clear_github_actions_env() {
   unset GITHUB_HEAD_REF
   unset GITHUB_REF_NAME
   unset GITHUB_OUTPUT
+  unset GITHUB_REPOSITORY
+  unset GITHUB_TOKEN
+  unset GH_TOKEN
+  unset GITHUB_API_URL
+  unset ZERO_RELEASE_GITHUB_TOKEN
+  unset ZERO_RELEASE_GITHUB_RELEASE_NAME
 }
 
 make_repo() {

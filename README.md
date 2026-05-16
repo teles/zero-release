@@ -69,7 +69,7 @@ zero-release --debug
 zero-release --no-push
 zero-release --no-tag
 zero-release --branches main,master
-zero-release --plugins release-notes,changelog,package-json,npm
+zero-release --plugins release-notes,changelog,package-json,github-release,npm
 zero-release --tag-format "v%s"
 zero-release --changelog-file CHANGELOG.md
 zero-release --package-json package.json
@@ -82,7 +82,7 @@ Configuration is only through CLI flags and environment variables. `.releaserc` 
 
 ## GitHub Actions
 
-Use `actions/checkout` with full history and tags, and grant write access to repository contents so `zero-release` can create and push tags.
+Use `actions/checkout` with full history and tags, and grant write access to repository contents so `zero-release` can create and push tags. Add the `github-release` plugin when you want GitHub to render the generated Markdown as a release body.
 
 ### Using the published action
 
@@ -109,7 +109,7 @@ jobs:
       - uses: teles/zero-release@v1
         id: release
         with:
-          plugins: "release-notes,changelog,package-json"
+          plugins: "release-notes,changelog,package-json,github-release"
           branches: "main"
 ```
 
@@ -160,7 +160,7 @@ jobs:
       - uses: teles/zero-release@v1
         id: release
         with:
-          plugins: "release-notes,changelog,package-json,git-commit,npm"
+          plugins: "release-notes,changelog,package-json,git-commit,npm,github-release"
           branches: "main"
 ```
 
@@ -179,7 +179,7 @@ When developing or testing `zero-release` itself, use the local action path:
   id: release
   with:
     dry-run: "false"
-    plugins: "release-notes,changelog,package-json"
+    plugins: "release-notes,changelog,package-json,github-release"
     branches: "main"
 ```
 
@@ -205,7 +205,7 @@ jobs:
       - uses: teles/zero-release@v1
         id: release
         with:
-          plugins: "release-notes,changelog,package-json"
+          plugins: "release-notes,changelog,package-json,github-release"
           branches: "main"
 ```
 
@@ -219,7 +219,7 @@ Prereleases are opt-in. Configure prerelease branches explicitly:
   with:
     branches: "main"
     prerelease-branches: "alpha,beta,rc,next:beta"
-    plugins: "release-notes,changelog,package-json"
+    plugins: "release-notes,changelog,package-json,github-release"
 ```
 
 When `$GITHUB_OUTPUT` exists, the CLI writes these outputs directly:
@@ -307,6 +307,7 @@ Publish plugins run in this order when enabled:
 
 ```text
 npm
+github-release
 ```
 
 ## Release Rules
@@ -371,11 +372,14 @@ Built-in plugins:
 | `package-json` | `prepare` | Yes | No | Updates the top-level `version` field in `package.json`; fails instead of modifying a nested or ambiguous field |
 | `git-commit` | `prepare` | Yes | No | Commits changed release assets when explicitly enabled |
 | `npm` | `publish` | No | Yes | Publishes with `npm publish` using npm Trusted Publishing/OIDC |
+| `github-release` | `publish` | No | Yes | Creates a GitHub Release with the generated Markdown notes |
 | `slack` | `notify` | No | Yes | Sends a Slack webhook notification |
 | `webhook` | `notify` | No | Yes | Sends a generic webhook notification |
 | `gchat` | `notify` | No | Yes | Sends a Google Chat webhook notification |
 
-Network plugins are never run in `--dry-run` and must be enabled explicitly. Notification plugins require `curl`. The `npm` plugin requires the npm CLI and a trusted publisher configured in the npm package settings. Webhook secrets are not required for dry-run or no-release runs, but they are required for real releases that reach `notify`.
+The core always produces a release notes file before `prepare` and `publish`. Enabling `release-notes` makes that generation explicit and leaves room for alternate notes plugins, but `changelog`, annotated Git tags, and `github-release` can still consume the generated notes when `release-notes` is not listed.
+
+Network plugins are never run in `--dry-run` and must be enabled explicitly. GitHub release creation and notification plugins require `curl`. The `github-release` plugin requires `GITHUB_TOKEN`, `GH_TOKEN`, or `ZERO_RELEASE_GITHUB_TOKEN`; the published composite action passes the workflow `github.token` automatically. The `npm` plugin requires the npm CLI and a trusted publisher configured in the npm package settings. Webhook secrets are not required for dry-run or no-release runs, but they are required for real releases that reach `notify`.
 
 ```mermaid
 flowchart LR
@@ -384,6 +388,7 @@ flowchart LR
   Core --> Package[package-json]
   Core --> Commit[git-commit]
   Core --> Npm[npm<br/>uses npm CLI + OIDC]
+  Core --> GitHubRelease[github-release<br/>uses GitHub REST API]
   Core --> Notify[notify plugins]
 
   Notify --> Slack[slack<br/>uses curl]
@@ -401,7 +406,17 @@ Publishing is explicit:
 | Push tag | Done with `git push origin "$tag"` unless `--no-push`, `--no-tag`, or `--dry-run` |
 | Push branch | Done only when the `git-commit` plugin created a release commit |
 | npm package | Done with `npm publish` when the `npm` plugin is enabled; stable releases use `latest`, prereleases use the channel as the dist-tag |
+| GitHub Release | Done with the GitHub Releases API when the `github-release` plugin is enabled |
 | Dry-run | Never creates commits, tags, pushes, or network calls |
+
+The `github-release` plugin supports these environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `ZERO_RELEASE_GITHUB_TOKEN` | `GITHUB_TOKEN` or `GH_TOKEN` | Token used to create the GitHub Release |
+| `ZERO_RELEASE_GITHUB_RELEASE_NAME` | Next tag | Release title |
+| `GITHUB_REPOSITORY` | parsed from `origin` when possible | Repository in `owner/name` form |
+| `GITHUB_API_URL` | `https://api.github.com` | GitHub API base URL, useful for GitHub Enterprise |
 
 The `npm` plugin supports these environment variables:
 
@@ -479,7 +494,7 @@ Compare and commit URLs are generated for GitHub, GitLab, Bitbucket, and Azure D
 | No config files | No `.releaserc`, `.releaserc.json`, `.releaserc.yml`, or `package.json#release` |
 | No compatibility layer | semantic-release compatibility may be explored later |
 | No custom release rules | Default Conventional Commit rules only |
-| No remote release plugin yet | GitHub/GitLab release creation is not implemented yet |
+| No GitLab release plugin yet | GitLab release creation is not implemented yet |
 | Minimal `package-json` update | Updates the top-level `"version"` field using a minimal text-based strategy; complex JSON rewriting is out of scope |
 | Simple prerelease support | Branch/channel prereleases are intentionally limited |
 
@@ -491,7 +506,6 @@ Compare and commit URLs are generated for GitHub, GitLab, Bitbucket, and Azure D
   - `.releaserc.yml`
   - `package.json#release`
 - Semantic-release compatibility layer.
-- GitHub Release plugin.
 - GitLab Release plugin.
 - MCP server/wrapper.
 - Optional Docker image for generic CI systems.

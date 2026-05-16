@@ -75,7 +75,7 @@ Options:
   --no-push
   --no-tag
   --branches main,master
-  --plugins release-notes,changelog,package-json,npm
+  --plugins release-notes,changelog,package-json,github-release,npm
   --tag-format "v%s"
   --changelog-file CHANGELOG.md
   --package-json package.json
@@ -165,6 +165,7 @@ zr_plugin_supports_hook() {
     package-json:verify|package-json:prepare) return 0 ;;
     git-commit:prepare) return 0 ;;
     npm:verify|npm:publish) return 0 ;;
+    github-release:verify|github-release:publish) return 0 ;;
     slack:verify|slack:notify) return 0 ;;
     webhook:verify|webhook:notify) return 0 ;;
     gchat:verify|gchat:notify) return 0 ;;
@@ -174,7 +175,7 @@ zr_plugin_supports_hook() {
 
 zr_plugin_is_network() {
   case "${1-}" in
-    npm|slack|webhook|gchat) return 0 ;;
+    npm|github-release|slack|webhook|gchat) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -193,7 +194,7 @@ zr_plugin_enabled() {
 zr_hook_order() {
   case "$1" in
     verify)
-      printf '%s\n' release-notes changelog package-json git-commit npm webhook slack gchat
+      printf '%s\n' release-notes changelog package-json git-commit npm github-release webhook slack gchat
       ;;
     generate-notes)
       printf '%s\n' release-notes
@@ -202,13 +203,13 @@ zr_hook_order() {
       printf '%s\n' changelog package-json git-commit
       ;;
     publish)
-      printf '%s\n' npm
+      printf '%s\n' npm github-release
       ;;
     notify)
       printf '%s\n' webhook slack gchat
       ;;
     *)
-      printf '%s\n' release-notes changelog package-json git-commit npm webhook slack gchat
+      printf '%s\n' release-notes changelog package-json git-commit npm github-release webhook slack gchat
       ;;
   esac
 }
@@ -446,8 +447,11 @@ zr_export_context() {
   export ZERO_RELEASE_NEXT_TAG="$ZR_NEXT_TAG"
   export ZERO_RELEASE_BUMP="$ZR_BUMP"
   export ZERO_RELEASE_DRY_RUN="$ZR_DRY_RUN"
+  export ZERO_RELEASE_NO_PUSH="$ZR_NO_PUSH"
+  export ZERO_RELEASE_NO_TAG="$ZR_NO_TAG"
   export ZERO_RELEASE_CURRENT_BRANCH="$ZR_CURRENT_BRANCH"
   export ZERO_RELEASE_CHANNEL="$ZR_CHANNEL"
+  export ZERO_RELEASE_PROVIDER="$ZR_PROVIDER"
   export ZERO_RELEASE_NOTES_FILE="$ZR_NOTES_FILE"
   export ZERO_RELEASE_COMPARE_URL="$ZR_COMPARE_URL"
   export ZERO_RELEASE_REPOSITORY_URL="$ZR_REPOSITORY_URL"
@@ -694,6 +698,7 @@ zr_print_dry_run_text() {
   printf 'Plugins verify: '; zr_hook_plugins "verify" | awk 'BEGIN { first = 1 } { if (!first) printf ", "; printf "%s", $0; first = 0 } END { print "" }'
   printf 'Plugins generate-notes: '; zr_hook_plugins "generate-notes" | awk 'BEGIN { first = 1 } { if (!first) printf ", "; printf "%s", $0; first = 0 } END { print "" }'
   printf 'Plugins prepare: '; zr_hook_plugins "prepare" | awk 'BEGIN { first = 1 } { if (!first) printf ", "; printf "%s", $0; first = 0 } END { print "" }'
+  printf 'Plugins publish: '; zr_hook_plugins "publish" | awk 'BEGIN { first = 1 } { if (!first) printf ", "; printf "%s", $0; first = 0 } END { print "" }'
   printf 'Plugins notify: '; zr_hook_plugins "notify" | awk 'BEGIN { first = 1 } { if (!first) printf ", "; printf "%s", $0; first = 0 } END { print "" }'
   printf 'Files that would change:\n'
   if zr_plugin_enabled "changelog"; then

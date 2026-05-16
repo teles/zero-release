@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+hook="${1-}"
+root="${ZERO_RELEASE_ROOT_DIR:?ZERO_RELEASE_ROOT_DIR is required}"
+
+. "$root/lib/json.sh"
+
+zr_github_release_token() {
+  if [ -n "${ZERO_RELEASE_GITHUB_TOKEN:-}" ]; then
+    printf '%s\n' "$ZERO_RELEASE_GITHUB_TOKEN"
+  elif [ -n "${GITHUB_TOKEN:-}" ]; then
+    printf '%s\n' "$GITHUB_TOKEN"
+  else
+    printf '%s\n' "${GH_TOKEN:-}"
+  fi
+}
+
+zr_github_release_repo() {
+  local repo="${GITHUB_REPOSITORY:-}"
+  local url path
+
+  if [ -n "$repo" ]; then
+    printf '%s\n' "$repo"
+    return 0
+  fi
+
+  url="${ZERO_RELEASE_REPOSITORY_URL:-}"
+  url="${url%.git}"
+  case "$url" in
+    https://github.com/*/*)
+      path="${url#https://github.com/}"
+      printf '%s\n' "$path"
+      return 0
+      ;;
+    http://github.com/*/*)
+      path="${url#http://github.com/}"
+      printf '%s\n' "$path"
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+zr_github_release_validate_repo() {
+  local repo="$1"
+
+  [ -n "$repo" ] || return 1
+  case "$repo" in
+    */*/*|/*|*/|*' '*|*$'\n'*|*$'\t'*|*':'*|*'..'*)
+      return 1
+      ;;
+  esac
+  [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+}
+
+zr_github_release_verify() {
+  local token repo
+
+  if [ "${ZERO_RELEASE_DRY_RUN:-false}" = "true" ]; then
+    return 0
+  fi
+  if [ "${ZERO_RELEASE_RELEASED:-false}" != "true" ]; then
+    return 0
+  fi
+  if [ "${ZERO_RELEASE_NO_TAG:-false}" = "true" ]; then
+    printf 'github-release: cannot create a GitHub release when --no-tag is enabled\n' >&2
+    return 1
+  fi
+  if [ "${ZERO_RELEASE_NO_PUSH:-false}" = "true" ]; then
+    printf 'github-release: cannot create a GitHub release when --no-push is enabled\n' >&2
+    return 1
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    printf 'github-release: curl is required when the github-release plugin is enabled\n' >&2
+    return 1
+  fi
+
+  token="$(zr_github_release_token)"
+  if [ -z "$token" ]; then
+    printf 'github-release: GITHUB_TOKEN or ZERO_RELEASE_GITHUB_TOKEN is required when the github-release plugin is enabled\n' >&2
+    return 1
+  fi
+
+  repo="$(zr_github_release_repo 2>/dev/null || true)"
+  if ! zr_github_release_validate_repo "$repo"; then
+    printf 'github-release: could not determine GitHub repository owner/name\n' >&2
+    return 1
+  fi
+}
+
+zr_github_release_payload() {
+  local name body prerelease
+
+  name="${ZERO_RELEASE_GITHUB_RELEASE_NAME:-${ZERO_RELEASE_NEXT_TAG:-}}"
+  body="$(awk '{ print }' "${ZERO_RELEASE_NOTES_FILE:?ZERO_RELEASE_NOTES_FILE is required}")"
+  case "${ZERO_RELEASE_CHANNEL:-stable}" in
+    ""|stable) prerelease="false" ;;
+    *) prerelease="true" ;;
+  esac
+
+  printf '{'
+  printf '"tag_name":'; zr_json_string "${ZERO_RELEASE_NEXT_TAG:-}"; printf ','
+  printf '"name":'; zr_json_string "$name"; printf ','
+  printf '"body":'; zr_json_string "$body"; printf ','
+  printf '"draft":false,'
+  printf '"prerelease":%s' "$prerelease"
+  printf '}'
+}
+
+zr_github_release_create() {
+  local token repo api_base url payload response_file status response
+
+  if [ "${ZERO_RELEASE_DRY_RUN:-false}" = "true" ]; then
+    return 0
+  fi
+  if [ "${ZERO_RELEASE_RELEASED:-false}" != "true" ]; then
+    return 0
+  fi
+
+  zr_github_release_verify || return $?
+
+  token="$(zr_github_release_token)"
+  repo="$(zr_github_release_repo)"
+  api_base="${GITHUB_API_URL:-https://api.github.com}"
+  api_base="${api_base%/}"
+  url="${api_base}/repos/${repo}/releases"
+  payload="$(zr_github_release_payload)"
+  response_file="$(mktemp)"
+  trap 'rm -f "$response_file"' RETURN
+
+  status="$(curl -sS -L \
+    -X POST \
+    -H 'Accept: application/vnd.github+json' \
+    -H "Authorization: Bearer ${token}" \
+    -H 'X-GitHub-Api-Version: 2022-11-28' \
+    --data "$payload" \
+    -w '%{http_code}' \
+    -o "$response_file" \
+    "$url")" || return $?
+
+  case "$status" in
+    201)
+      printf 'github-release: created release %s\n' "${ZERO_RELEASE_NEXT_TAG:-}"
+      ;;
+    *)
+      response="$(awk '{ print }' "$response_file" 2>/dev/null || true)"
+      printf 'github-release: GitHub release create failed (HTTP %s): %s\n' "$status" "$response" >&2
+      return 1
+      ;;
+  esac
+}
+
+case "$hook" in
+  doctor)
+    ZERO_RELEASE_RELEASED="true" ZERO_RELEASE_DRY_RUN="false" zr_github_release_verify
+    ;;
+  verify)
+    zr_github_release_verify
+    ;;
+  publish)
+    zr_github_release_create
+    ;;
+  analyze|verify-release|generate-notes|prepare|notify|success|fail)
+    exit 0
+    ;;
+  *)
+    printf 'github-release: unknown hook: %s\n' "$hook" >&2
+    exit 1
+    ;;
+esac

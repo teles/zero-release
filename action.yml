@@ -72,6 +72,7 @@ runs:
         ZERO_RELEASE_ACTION_CHANGELOG_FILE: ${{ inputs.changelog-file }}
         ZERO_RELEASE_ACTION_PACKAGE_JSON: ${{ inputs.package-json }}
         ZERO_RELEASE_ACTION_DEBUG: ${{ inputs.debug }}
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
 
