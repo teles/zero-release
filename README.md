@@ -12,6 +12,8 @@
 
 It is semantic-release inspired, not semantic-release compatible. The current version intentionally does not implement `.releaserc`, `.releaserc.json`, package-manager installs, or JavaScript runtime dependencies.
 
+The documentation site source lives in `docs/` as plain Markdown plus Jekyll configuration for GitHub Pages. Generated HTML is not committed.
+
 ## At a glance
 
 | Area | zero-release |
@@ -527,3 +529,5 @@ Run tests:
 ```bash
 bats tests/unit/*.bats tests/integration/*.bats
 ```
+
+Documentation source lives in `docs/` and is published with GitHub Pages from the `/docs` folder.
