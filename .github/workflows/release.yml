@@ -26,4 +26,4 @@ jobs:
         with:
           dry-run: "false"
           branches: "main"
-          plugins: "release-notes,changelog,git-commit"
+          plugins: "release-notes,changelog,git-commit,github-release"
