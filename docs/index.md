@@ -1,9 +1,9 @@
 ---
-title: zero-release
+title: 0️⃣🚀 zero-release
 nav_order: 1
 ---
 
-# zero-release
+# 0️⃣🚀 zero-release
 
 Zero-runtime-dependency semantic release automation for GitHub Actions, written in Bash and based on Conventional Commits.
 
@@ -12,9 +12,30 @@ Zero-runtime-dependency semantic release automation for GitHub Actions, written 
 ## Start here
 
 - [Getting Started]({{ site.baseurl }}/guide/getting-started/)
+- [Concepts]({{ site.baseurl }}/guide/concepts/)
 - [GitHub Actions]({{ site.baseurl }}/guide/github-actions/)
 - [Plugins]({{ site.baseurl }}/plugins/)
 - [CLI Reference]({{ site.baseurl }}/reference/cli/)
+
+## How it fits together
+
+```mermaid
+flowchart LR
+  accTitle: zero-release system overview
+  accDescr: Commits and tags are read by the Bash CLI, which calculates a release, creates notes and tags, and runs explicit plugins.
+
+  commits[Conventional Commits] --> cli[zero-release CLI]
+  tags[Git tags] --> cli
+  cli --> version[Next SemVer version]
+  cli --> notes[Generated release notes]
+  cli --> tag[Annotated Git tag]
+  notes --> changelog[CHANGELOG.md]
+  notes --> githubRelease[GitHub Release]
+  version --> packageJson[package.json]
+  tag --> remote[Git remote]
+  cli --> npm[npm publish]
+  cli --> notify[Notifications]
+```
 
 ## Minimal workflow
 

@@ -8,6 +8,23 @@ nav_order: 4
 
 zero-release keeps its default release path small and explicit.
 
+```mermaid
+flowchart LR
+  accTitle: Security boundary between core and plugins
+  accDescr: The core avoids network access and sourced repository config, while explicit plugins handle network calls only when enabled.
+
+  repo[Repository data] --> core[zero-release core]
+  core --> git[Local Git operations]
+  core --> notes[Release notes]
+  core --> plugins{Enabled plugins}
+  plugins --> file[File changes]
+  plugins --> network[Network calls]
+
+  network --> github[GitHub API]
+  network --> registry[npm registry]
+  network --> webhooks[Webhook endpoints]
+```
+
 | Rule | Why it matters |
 |---|---|
 | No `eval` | Avoids command injection from untrusted input |

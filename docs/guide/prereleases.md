@@ -1,7 +1,7 @@
 ---
 title: Prereleases
 parent: Guide
-nav_order: 6
+nav_order: 7
 ---
 
 # Prereleases
@@ -27,6 +27,20 @@ In GitHub Actions:
 ```
 
 ## Branch to channel mapping
+
+```mermaid
+flowchart TD
+  accTitle: Stable and prerelease branch routing
+  accDescr: Stable branches publish normal versions, while configured prerelease branches publish prerelease versions with channel-specific identifiers.
+
+  branch[Current branch] --> stable{In --branches?}
+  stable -- Yes --> stableRelease[Stable release]
+  stableRelease --> stableVersion[1.3.0]
+  stable -- No --> pre{In --prerelease-branches?}
+  pre -- Yes --> preRelease[Prerelease]
+  preRelease --> preVersion[1.3.0-beta.1]
+  pre -- No --> skip[No release]
+```
 
 Entries can be either:
 

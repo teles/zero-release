@@ -1,7 +1,7 @@
 ---
 title: GitHub Actions
 parent: Guide
-nav_order: 2
+nav_order: 3
 ---
 
 # GitHub Actions
@@ -9,6 +9,26 @@ nav_order: 2
 GitHub Actions is the primary target for zero-release. Use full Git history and tags so the CLI can find previous releases and compute the next version.
 
 ## Minimal release workflow
+
+```mermaid
+sequenceDiagram
+  accTitle: GitHub Actions release sequence
+  accDescr: A push to main triggers checkout and zero-release, which analyzes commits, creates a tag, publishes a GitHub Release, and writes outputs.
+
+  participant Dev as Developer
+  participant GH as GitHub Actions
+  participant ZR as zero-release
+  participant Git as Git remote
+  participant API as GitHub Releases API
+
+  Dev->>GH: Push to main
+  GH->>Git: checkout fetch-depth 0
+  GH->>ZR: run composite action
+  ZR->>ZR: analyze commits and calculate version
+  ZR->>Git: create and push tag
+  ZR->>API: create release when github-release is enabled
+  ZR-->>GH: write outputs
+```
 
 ```yaml
 name: release
@@ -165,3 +185,5 @@ When `$GITHUB_OUTPUT` exists, the CLI writes these outputs:
 | Tag push fails | Missing `contents: write` permission |
 | GitHub Release fails | `github-release` is enabled without a token or repository context |
 | npm publish fails | Trusted publisher or `id-token: write` is missing |
+
+For more diagnosis paths, see [Troubleshooting]({{ site.baseurl }}/guide/troubleshooting/).

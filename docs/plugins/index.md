@@ -12,6 +12,28 @@ Network plugins are never run in `--dry-run`.
 
 ## Built-in plugins
 
+```mermaid
+flowchart TD
+  accTitle: Built-in plugin groups
+  accDescr: Built-in plugins are grouped into generated notes, file preparation, publishing, and notification responsibilities.
+
+  notes[release-notes] --> generated[Generated notes file]
+  generated --> changelog[changelog]
+  generated --> githubRelease[github-release]
+  generated --> tag[Annotated Git tag]
+
+  prepare[prepare plugins] --> changelog
+  prepare --> packageJson[package-json]
+  prepare --> gitCommit[git-commit]
+
+  publish[publish plugins] --> npm[npm]
+  publish --> githubRelease
+
+  notify[notify plugins] --> webhook[webhook]
+  notify --> slack[slack]
+  notify --> gchat[gchat]
+```
+
 | Plugin | Lifecycle hook | Changes files? | Network? | Purpose |
 |---|---|---:|---:|---|
 | `release-notes` | `generate-notes` | No | No | Generates release notes |

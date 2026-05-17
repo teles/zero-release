@@ -79,6 +79,7 @@ Configuration is deliberately explicit:
 ## Next steps
 
 - Configure [GitHub Actions]({{ site.baseurl }}/guide/github-actions/).
+- Review [core concepts]({{ site.baseurl }}/guide/concepts/).
 - Review [release rules]({{ site.baseurl }}/guide/release-rules/).
 - Choose [plugins]({{ site.baseurl }}/plugins/).
 - Run [doctor]({{ site.baseurl }}/reference/cli/#doctor).
