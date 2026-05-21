@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.2
+
+Released on 2026-05-21.
+
+### Bug Fixes
+
+- add MIT license ([a768745](https://github.com/zero-release/zero-release/commit/a768745b34c20d14422cfc01acc6f83671416f65))
+
+[Compare changes](https://github.com/zero-release/zero-release/compare/v1.2.1...v1.2.2)
+
 ## v1.2.1
 
 Released on 2026-05-21.
