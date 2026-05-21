@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.2.1
+
+Released on 2026-05-21.
+
+### Bug Fixes
+
+- prepare GitHub Marketplace listing ([e4c11f6](https://github.com/zero-release/zero-release/commit/e4c11f644bd8272659c00ff6838927466634c62f))
+
+### Other Changes
+
+- ci: publish GitHub Releases ([6e11154](https://github.com/zero-release/zero-release/commit/6e11154bb064696e6f53fe524ceb493f968af520))
+- docs: align theme toggle ([19623bc](https://github.com/zero-release/zero-release/commit/19623bc09e06006245cded1e13bfaa034529060e))
+- docs: add theme toggle ([d7c9154](https://github.com/zero-release/zero-release/commit/d7c91542a5fb501375d57e7eb024a5b0422788d7))
+- ci: publish docs to organization site ([265c212](https://github.com/zero-release/zero-release/commit/265c21261f72f02c778468408ae2b37ce48586dc))
+- docs: update repository ownership references ([434a146](https://github.com/zero-release/zero-release/commit/434a146f9f0caf24837ac50843cd8b64ea9e1225))
+- docs: expand documentation with diagrams and FAQ ([42d8569](https://github.com/zero-release/zero-release/commit/42d8569b3dd746df9cac09e9b6b492748ac6be2f))
+
+[Compare changes](https://github.com/zero-release/zero-release/compare/v1.2.0...v1.2.1)
+
 ## v1.2.0
 
 Released on 2026-05-17.
